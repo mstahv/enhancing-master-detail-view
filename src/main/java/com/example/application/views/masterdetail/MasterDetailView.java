@@ -5,7 +5,6 @@ import com.example.application.data.service.SamplePersonService;
 import com.example.application.views.MainLayout;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Key;
-import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
@@ -30,6 +29,7 @@ import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteAlias;
+import com.vaadin.flow.router.RouteConfiguration;
 import com.vaadin.flow.spring.data.VaadinSpringDataHelpers;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
@@ -37,13 +37,13 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import java.util.Optional;
 
 @PageTitle("Master-Detail")
-@Route(value = "master-detail/:samplePersonID?/:action?(edit)", layout = MainLayout.class)
-@RouteAlias(value = "", layout = MainLayout.class)
+@Route(value = "master-detail/:"+ MasterDetailView.SAMPLEPERSON_ID + "?/:action?(edit)", layout = MainLayout.class)
+@RouteAlias(value = ":"+ MasterDetailView.SAMPLEPERSON_ID+"?/:action?(edit)", layout = MainLayout.class)
 @Uses(Icon.class)
 public class MasterDetailView extends SplitLayout implements BeforeEnterObserver {
 
-    private final String SAMPLEPERSON_ID = "samplePersonID";
-    private final String SAMPLEPERSON_EDIT_ROUTE_TEMPLATE = "master-detail/%s/edit";
+    public static final String SAMPLEPERSON_ID = "samplePersonID";
+    private static final String SAMPLEPERSON_EDIT_ROUTE_TEMPLATE = "/%s/edit";
 
     private final Grid<SamplePerson> grid = new Grid<>(SamplePerson.class, false);
 
@@ -86,10 +86,9 @@ public class MasterDetailView extends SplitLayout implements BeforeEnterObserver
         // when a row is selected or deselected, populate form
         grid.asSingleSelect().addValueChangeListener(event -> {
             if (event.getValue() != null) {
-                UI.getCurrent().navigate(String.format(SAMPLEPERSON_EDIT_ROUTE_TEMPLATE, event.getValue().getId()));
+                editPerson(event.getValue());
             } else {
                 prepareFormForNewPerson();
-                UI.getCurrent().navigate(MasterDetailView.class);
             }
         });
         grid.setSizeFull();
@@ -107,8 +106,6 @@ public class MasterDetailView extends SplitLayout implements BeforeEnterObserver
             }
         });
 
-        prepareFormForNewPerson();
-
         cancel.addClickListener(e -> {
             prepareFormForNewPerson();
             refreshGrid();
@@ -121,7 +118,6 @@ public class MasterDetailView extends SplitLayout implements BeforeEnterObserver
                     prepareFormForNewPerson();
                     refreshGrid();
                     Notification.show("Data updated");
-                    UI.getCurrent().navigate(MasterDetailView.class);
                 } catch (ObjectOptimisticLockingFailureException exception) {
                     Notification n = Notification.show(
                             "Error updating the data. Somebody else has updated the record while you were making changes.");
@@ -135,6 +131,20 @@ public class MasterDetailView extends SplitLayout implements BeforeEnterObserver
         save.addClickShortcut(Key.ENTER);
     }
 
+    /**
+     * Updates deep linkin parameters
+     */
+    private void updateRouteParemeters() {
+        if(isAttached()) {
+            String deepLinkingUrl = RouteConfiguration.forSessionScope().getUrl(getClass());
+            if(binder.getBean().getId() != null) {
+                deepLinkingUrl = deepLinkingUrl + String.format(SAMPLEPERSON_EDIT_ROUTE_TEMPLATE, binder.getBean().getId().toString());
+            }
+            getUI().get().getPage().getHistory()
+                    .replaceState(null, deepLinkingUrl);
+        }
+    }
+
     private void adjustSaveButtonState() {
         // only allow saving if we have valida data
         save.setEnabled(binder.isValid() && formHasChanges);
@@ -142,6 +152,11 @@ public class MasterDetailView extends SplitLayout implements BeforeEnterObserver
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
+        /*
+         * When entering the view, check if there is an
+         * if an existing person should be selected for
+         * editing
+         */
         Optional<Long> samplePersonId = event.getRouteParameters().get(SAMPLEPERSON_ID).map(Long::parseLong);
         if (samplePersonId.isPresent()) {
             Optional<SamplePerson> samplePersonFromBackend = samplePersonService.get(samplePersonId.get());
@@ -151,17 +166,17 @@ public class MasterDetailView extends SplitLayout implements BeforeEnterObserver
                 Notification.show(
                         String.format("The requested samplePerson was not found, ID = %s", samplePersonId.get()), 3000,
                         Notification.Position.BOTTOM_START);
-                // when a row is selected but the data is no longer available,
-                // refresh grid
-                refreshGrid();
-                event.forwardTo(MasterDetailView.class);
+                prepareFormForNewPerson();
             }
+        } else {
+            prepareFormForNewPerson();
         }
     }
 
     private void editPerson(SamplePerson samplePersonFromBackend) {
         binder.setBean(samplePersonFromBackend);
         formHasChanges = false;
+        updateRouteParemeters();
     }
 
     private Component createEditorLayout() {
