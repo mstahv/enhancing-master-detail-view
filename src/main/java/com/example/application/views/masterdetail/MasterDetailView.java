@@ -4,6 +4,7 @@ import com.example.application.data.entity.SamplePerson;
 import com.example.application.data.service.SamplePersonService;
 import com.example.application.views.MainLayout;
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -22,6 +23,8 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.splitlayout.SplitLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
+import com.vaadin.flow.data.value.HasValueChangeMode;
+import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
@@ -59,6 +62,7 @@ public class MasterDetailView extends SplitLayout implements BeforeEnterObserver
     private final BeanValidationBinder<SamplePerson> binder;
 
     private final SamplePersonService samplePersonService;
+    private boolean formHasChanges;
 
     public MasterDetailView(SamplePersonService samplePersonService) {
         this.samplePersonService = samplePersonService;
@@ -98,9 +102,17 @@ public class MasterDetailView extends SplitLayout implements BeforeEnterObserver
 
         // Configure Form
         binder = new BeanValidationBinder<>(SamplePerson.class);
-
-
         binder.bindInstanceFields(this);
+        binder.addStatusChangeListener(e -> {
+            adjustSaveButtonState();
+        });
+        binder.addValueChangeListener(e -> {
+            if(e.isFromClient()) {
+                formHasChanges = true;
+                adjustSaveButtonState();
+            }
+        });
+
         prepareFormForNewPerson();
 
         cancel.addClickListener(e -> {
@@ -126,6 +138,12 @@ public class MasterDetailView extends SplitLayout implements BeforeEnterObserver
                 Notification.show("Failed to update the data. Check again that all values are valid");
             }
         });
+        save.addClickShortcut(Key.ENTER);
+    }
+
+    private void adjustSaveButtonState() {
+        // only allow saving if we have valida data
+        save.setEnabled(binder.isValid() && formHasChanges);
     }
 
     @Override
@@ -134,7 +152,7 @@ public class MasterDetailView extends SplitLayout implements BeforeEnterObserver
         if (samplePersonId.isPresent()) {
             Optional<SamplePerson> samplePersonFromBackend = samplePersonService.get(samplePersonId.get());
             if (samplePersonFromBackend.isPresent()) {
-                binder.setBean(samplePersonFromBackend.get());
+                editPerson(samplePersonFromBackend.get());
             } else {
                 Notification.show(
                         String.format("The requested samplePerson was not found, ID = %s", samplePersonId.get()), 3000,
@@ -147,10 +165,25 @@ public class MasterDetailView extends SplitLayout implements BeforeEnterObserver
         }
     }
 
+    private void editPerson(SamplePerson samplePersonFromBackend) {
+        binder.setBean(samplePersonFromBackend);
+        formHasChanges = false;
+    }
+
     private Component createEditorLayout() {
         var formLayout = new FormLayout();
         formLayout.setClassName("editor");
         formLayout.add(firstName, lastName, email, phone, dateOfBirth, occupation, role, important);
+
+        // Validate fields while users type in
+        // for example when email becomes valid,
+        // the error disappears automatically
+        formLayout.getChildren().forEach(c -> {
+                if (c instanceof HasValueChangeMode) {
+                    ((HasValueChangeMode) c).setValueChangeMode(ValueChangeMode.LAZY);
+                }
+            }
+        );
 
         var editorLayout = new VerticalLayout();
         editorLayout.setWidth("400px");
@@ -176,7 +209,7 @@ public class MasterDetailView extends SplitLayout implements BeforeEnterObserver
     }
 
     private void prepareFormForNewPerson() {
-        binder.setBean(new SamplePerson());
+        editPerson(new SamplePerson());
     }
 
 }
