@@ -1,7 +1,6 @@
-# My App
+# Git story about improving the Master-Detail template from start.vaadin.com
 
-This project can be used as a starting point to create your own Vaadin application with Spring Boot.
-It contains all the necessary configuration and some placeholder files to get you started.
+This project contains "git story" about improvements I planned to do to the Master-Detail view template in start.vaadin.com. Let's see if an actual blog post follows up at some point.
 
 ## Running the application
 
