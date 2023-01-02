@@ -72,17 +72,11 @@ public class MasterDetailView extends SplitLayout implements BeforeEnterObserver
         addToSecondary(createEditorLayout());
 
         // Configure Grid
-        grid.addColumn("firstName").setAutoWidth(true);
-        grid.addColumn("lastName").setAutoWidth(true);
-        grid.addColumn("email").setAutoWidth(true);
-        grid.addColumn("phone").setAutoWidth(true);
-        grid.addColumn("dateOfBirth").setAutoWidth(true);
-        grid.addColumn("occupation").setAutoWidth(true);
-        grid.addColumn("role").setAutoWidth(true);
-
+        grid.setColumns("firstName","lastName" ,"email", "phone", "dateOfBirth", "occupation", "role");
         grid.addComponentColumn(p ->
             p.isImportant() ? new CheckedIcon() : new UncheckedIcon())
-                .setHeader("Important").setAutoWidth(true);
+                .setHeader("Important");
+        grid.getColumns().forEach(c -> c.setAutoWidth(true));
 
         grid.setItems(query -> samplePersonService.stream(
                 PageRequest.of(query.getPage(), query.getPageSize(), VaadinSpringDataHelpers.toSpringDataSort(query)))
