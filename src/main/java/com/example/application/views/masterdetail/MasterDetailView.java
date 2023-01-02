@@ -31,7 +31,6 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteAlias;
 import com.vaadin.flow.router.RouteConfiguration;
 import com.vaadin.flow.spring.data.VaadinSpringDataHelpers;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import java.util.Optional;
@@ -78,9 +77,7 @@ public class MasterDetailView extends SplitLayout implements BeforeEnterObserver
                 .setHeader("Important");
         grid.getColumns().forEach(c -> c.setAutoWidth(true));
 
-        grid.setItems(query -> samplePersonService.stream(
-                PageRequest.of(query.getPage(), query.getPageSize(), VaadinSpringDataHelpers.toSpringDataSort(query)))
-                );
+        grid.setItems(query -> samplePersonService.stream(VaadinSpringDataHelpers.toSpringPageRequest(query)));
         grid.addThemeVariants(GridVariant.LUMO_NO_BORDER);
 
         // when a row is selected or deselected, populate form
