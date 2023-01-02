@@ -1,7 +1,11 @@
 package com.example.application.data.service;
 
 import com.example.application.data.entity.SamplePerson;
+
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -27,9 +31,9 @@ public class SamplePersonService {
     public void delete(Long id) {
         repository.deleteById(id);
     }
-
-    public Page<SamplePerson> list(Pageable pageable) {
-        return repository.findAll(pageable);
+    
+    public Stream<SamplePerson> stream(Pageable pageable) {
+        return repository.findAllBy(pageable).stream();
     }
 
     public Page<SamplePerson> list(Pageable pageable, Specification<SamplePerson> filter) {
