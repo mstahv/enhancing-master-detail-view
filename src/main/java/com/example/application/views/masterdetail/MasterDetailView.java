@@ -3,7 +3,6 @@ package com.example.application.views.masterdetail;
 import com.example.application.data.entity.SamplePerson;
 import com.example.application.data.service.SamplePersonService;
 import com.example.application.views.MainLayout;
-import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -60,46 +59,37 @@ public class MasterDetailView extends SplitLayout implements BeforeEnterObserver
 
     private final BeanValidationBinder<SamplePerson> binder;
 
-    private final SamplePersonService samplePersonService;
+    private final SamplePersonService service;
+
+    // binder.hasChanges() methods does not
+    // work in a meaningful way with buffered
+    // binding, track changes with this field
     private boolean formHasChanges;
 
     public MasterDetailView(SamplePersonService samplePersonService) {
-        this.samplePersonService = samplePersonService;
-        setOrientation(Orientation.HORIZONTAL);
-        setSizeFull();
-        addToPrimary(grid);
-        addToSecondary(createEditorLayout());
+        this.service = samplePersonService;
+        buildView();
 
-        // Configure Grid
-        grid.setColumns("firstName","lastName" ,"email", "phone", "dateOfBirth", "occupation", "role");
-        grid.addComponentColumn(p ->
-            p.isImportant() ? new CheckedIcon() : new UncheckedIcon())
-                .setHeader("Important");
-        grid.getColumns().forEach(c -> c.setAutoWidth(true));
+        // Connect Grid to the backend
+        grid.setItems(query -> service.stream(VaadinSpringDataHelpers.toSpringPageRequest(query)));
 
-        grid.setItems(query -> samplePersonService.stream(VaadinSpringDataHelpers.toSpringPageRequest(query)));
-        grid.addThemeVariants(GridVariant.LUMO_NO_BORDER);
-
-        // when a row is selected or deselected, populate form
-        grid.asSingleSelect().addValueChangeListener(event -> {
-            if (event.getValue() != null) {
-                editPerson(event.getValue());
-            } else {
-                prepareFormForNewPerson();
-            }
-        });
-        grid.setSizeFull();
-
-        // Configure Form
+        // Configure form binding
         binder = new BeanValidationBinder<>(SamplePerson.class);
         binder.bindInstanceFields(this);
-        binder.addStatusChangeListener(e -> {
-            adjustSaveButtonState();
-        });
-        binder.addValueChangeListener(e -> {
-            if(e.isFromClient()) {
-                formHasChanges = true;
-                adjustSaveButtonState();
+
+        configureEagerFormValidation();
+
+        addListeners();
+
+    }
+
+    private void addListeners() {
+        grid.asSingleSelect().addValueChangeListener(event -> {
+            var selectedPerson = event.getValue();
+            if(selectedPerson == null) {
+                prepareFormForNewPerson();
+            } else {
+                editPerson(selectedPerson);
             }
         });
 
@@ -109,29 +99,86 @@ public class MasterDetailView extends SplitLayout implements BeforeEnterObserver
         });
 
         save.addClickListener(e -> {
-            if(binder.isValid()) {
-                try {
-                    samplePersonService.update(binder.getBean());
-                    prepareFormForNewPerson();
-                    refreshGrid();
-                    Notification.show("Data updated");
-                } catch (ObjectOptimisticLockingFailureException exception) {
-                    Notification n = Notification.show(
-                            "Error updating the data. Somebody else has updated the record while you were making changes.");
-                    n.setPosition(Position.MIDDLE);
-                    n.addThemeVariants(NotificationVariant.LUMO_ERROR);
-                }
-            } else {
-                Notification.show("Failed to update the data. Check again that all values are valid");
+            try {
+                service.update(binder.getBean());
+                prepareFormForNewPerson();
+                refreshGrid();
+                notifyUser("Data updated");
+            } catch (ObjectOptimisticLockingFailureException exception) {
+                showErrorMessage("Error updating the data. Somebody else has updated the record while you were making changes.");
             }
         });
         save.addClickShortcut(Key.ENTER);
     }
 
+    private void showErrorMessage(String errorMessage) {
+        Notification n = Notification.show(errorMessage);
+        n.setPosition(Position.MIDDLE);
+        n.addThemeVariants(NotificationVariant.LUMO_ERROR);
+    }
+
+    private static void notifyUser(String Data_updated) {
+        Notification.show(Data_updated);
+    }
+
+    private void buildView() {
+        setOrientation(Orientation.HORIZONTAL);
+        setSizeFull();
+
+        var formLayout = new FormLayout(firstName, lastName, email, phone, dateOfBirth, occupation, role, important);
+        formLayout.setClassName("editor");
+
+        var buttonLayout = new HorizontalLayout(save, cancel);
+        buttonLayout.setClassName("button-layout");
+        cancel.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        save.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+
+
+        var editorLayout = new VerticalLayout();
+        editorLayout.setWidth("400px");
+        editorLayout.setPadding(false);
+        editorLayout.setSpacing(false);
+        editorLayout.addAndExpand(formLayout);
+        editorLayout.add(buttonLayout);
+
+        addToSecondary(editorLayout);
+        addToPrimary(grid);
+
+        // Configure Grid
+        grid.setColumns("firstName","lastName" ,"email", "phone", "dateOfBirth", "occupation", "role");
+        grid.addComponentColumn(p ->
+                        p.isImportant() ? new CheckedIcon() : new UncheckedIcon())
+                .setHeader("Important");
+        grid.addThemeVariants(GridVariant.LUMO_NO_BORDER);
+        grid.getColumns().forEach(c -> c.setAutoWidth(true));
+        grid.setSizeFull();
+    }
+
+    @Override
+    public void beforeEnter(BeforeEnterEvent event) {
+        /*
+         * When entering the view, check if there is an
+         * if an existing person should be selected for
+         * editing based on the current URL
+         */
+        Optional<Long> samplePersonId = event.getRouteParameters().get(SAMPLEPERSON_ID).map(Long::parseLong);
+        if (samplePersonId.isPresent()) {
+            Optional<SamplePerson> samplePersonFromBackend = service.get(samplePersonId.get());
+            if (samplePersonFromBackend.isPresent()) {
+                editPerson(samplePersonFromBackend.get());
+            } else {
+                showErrorMessage("The requested samplePerson was not found, ID = %s");
+                prepareFormForNewPerson();
+            }
+        } else {
+            prepareFormForNewPerson();
+        }
+    }
+
     /**
-     * Updates deep linkin parameters
+     * Updates deep linkin parameters.
      */
-    private void updateRouteParemeters() {
+    private void updateRouteParameters() {
         if(isAttached()) {
             String deepLinkingUrl = RouteConfiguration.forSessionScope().getUrl(getClass());
             if(binder.getBean().getId() != null) {
@@ -142,80 +189,45 @@ public class MasterDetailView extends SplitLayout implements BeforeEnterObserver
         }
     }
 
-    private void adjustSaveButtonState() {
-        // only allow saving if we have valida data
-        save.setEnabled(binder.isValid() && formHasChanges);
-    }
-
-    @Override
-    public void beforeEnter(BeforeEnterEvent event) {
-        /*
-         * When entering the view, check if there is an
-         * if an existing person should be selected for
-         * editing
-         */
-        Optional<Long> samplePersonId = event.getRouteParameters().get(SAMPLEPERSON_ID).map(Long::parseLong);
-        if (samplePersonId.isPresent()) {
-            Optional<SamplePerson> samplePersonFromBackend = samplePersonService.get(samplePersonId.get());
-            if (samplePersonFromBackend.isPresent()) {
-                editPerson(samplePersonFromBackend.get());
-            } else {
-                Notification.show(
-                        String.format("The requested samplePerson was not found, ID = %s", samplePersonId.get()), 3000,
-                        Notification.Position.BOTTOM_START);
-                prepareFormForNewPerson();
-            }
-        } else {
-            prepareFormForNewPerson();
-        }
-    }
 
     private void editPerson(SamplePerson samplePersonFromBackend) {
         binder.setBean(samplePersonFromBackend);
         formHasChanges = false;
-        updateRouteParemeters();
-    }
-
-    private Component createEditorLayout() {
-        var formLayout = new FormLayout();
-        formLayout.setClassName("editor");
-        formLayout.add(firstName, lastName, email, phone, dateOfBirth, occupation, role, important);
-
-        // Validate fields while users type in
-        // for example when email becomes valid,
-        // the error disappears automatically
-        formLayout.getChildren().forEach(c -> {
-                if (c instanceof HasValueChangeMode) {
-                    ((HasValueChangeMode) c).setValueChangeMode(ValueChangeMode.LAZY);
-                }
-            }
-        );
-
-        var editorLayout = new VerticalLayout();
-        editorLayout.setWidth("400px");
-        editorLayout.setPadding(false);
-        editorLayout.setSpacing(false);
-        editorLayout.addAndExpand(formLayout);
-        editorLayout.add(createButtonLayout());
-        return editorLayout;
-    }
-
-    private Component createButtonLayout() {
-        HorizontalLayout buttonLayout = new HorizontalLayout();
-        buttonLayout.setClassName("button-layout");
-        cancel.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-        save.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        buttonLayout.add(save, cancel);
-        return buttonLayout;
+        updateRouteParameters();
     }
 
     private void refreshGrid() {
-        grid.select(null);
+        grid.deselectAll();
         grid.getDataProvider().refreshAll();
     }
 
     private void prepareFormForNewPerson() {
         editPerson(new SamplePerson());
+    }
+
+    private void configureEagerFormValidation() {
+        // Validate fields while users type in
+        // for example when email becomes valid,
+        // the error disappears automatically
+        binder.getFields().forEach(c -> {
+            if (c instanceof HasValueChangeMode) {
+                ((HasValueChangeMode) c).setValueChangeMode(ValueChangeMode.LAZY);
+            }
+        });
+        binder.addStatusChangeListener(e -> {
+            adjustSaveButtonState();
+        });
+        binder.addValueChangeListener(e -> {
+            if(e.isFromClient()) {
+                formHasChanges = true;
+                adjustSaveButtonState();
+            }
+        });
+    }
+
+    private void adjustSaveButtonState() {
+        // only allow saving if we have valida data
+        save.setEnabled(binder.isValid() && formHasChanges);
     }
 
 }
