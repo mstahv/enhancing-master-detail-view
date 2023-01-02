@@ -99,7 +99,6 @@ public class MasterDetailView extends SplitLayout implements BeforeEnterObserver
         // Configure Form
         binder = new BeanValidationBinder<>(SamplePerson.class);
 
-        // Bind fields. This is where you'd define e.g. validation rules
 
         binder.bindInstanceFields(this);
         prepareFormForNewPerson();
