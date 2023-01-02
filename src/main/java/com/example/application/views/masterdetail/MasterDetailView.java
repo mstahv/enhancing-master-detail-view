@@ -48,14 +48,14 @@ public class MasterDetailView extends Div implements BeforeEnterObserver {
 
     private final Grid<SamplePerson> grid = new Grid<>(SamplePerson.class, false);
 
-    private TextField firstName;
-    private TextField lastName;
-    private TextField email;
-    private TextField phone;
-    private DatePicker dateOfBirth;
-    private TextField occupation;
-    private TextField role;
-    private Checkbox important;
+    private TextField firstName = new TextField("First Name");
+    private TextField lastName = new TextField("Last Name");
+    private TextField email = new TextField("Email");
+    private TextField phone = new TextField("Phone");
+    private DatePicker dateOfBirth = new DatePicker("Date Of Birth");
+    private TextField occupation = new TextField("Occupation");
+    private TextField role = new TextField("Role");
+    private Checkbox important = new Checkbox("Important");;
 
     private final Button cancel = new Button("Cancel");
     private final Button save = new Button("Save");
@@ -168,14 +168,7 @@ public class MasterDetailView extends Div implements BeforeEnterObserver {
         editorLayoutDiv.add(editorDiv);
 
         FormLayout formLayout = new FormLayout();
-        firstName = new TextField("First Name");
-        lastName = new TextField("Last Name");
-        email = new TextField("Email");
-        phone = new TextField("Phone");
-        dateOfBirth = new DatePicker("Date Of Birth");
-        occupation = new TextField("Occupation");
-        role = new TextField("Role");
-        important = new Checkbox("Important");
+
         formLayout.add(firstName, lastName, email, phone, dateOfBirth, occupation, role, important);
 
         editorDiv.add(formLayout);
