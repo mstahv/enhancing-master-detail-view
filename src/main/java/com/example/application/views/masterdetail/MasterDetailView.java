@@ -22,7 +22,6 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.splitlayout.SplitLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
-import com.vaadin.flow.data.binder.ValidationException;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
@@ -59,8 +58,6 @@ public class MasterDetailView extends SplitLayout implements BeforeEnterObserver
 
     private final BeanValidationBinder<SamplePerson> binder;
 
-    private SamplePerson samplePerson;
-
     private final SamplePersonService samplePersonService;
 
     public MasterDetailView(SamplePersonService samplePersonService) {
@@ -93,7 +90,7 @@ public class MasterDetailView extends SplitLayout implements BeforeEnterObserver
             if (event.getValue() != null) {
                 UI.getCurrent().navigate(String.format(SAMPLEPERSON_EDIT_ROUTE_TEMPLATE, event.getValue().getId()));
             } else {
-                clearForm();
+                prepareFormForNewPerson();
                 UI.getCurrent().navigate(MasterDetailView.class);
             }
         });
@@ -105,29 +102,28 @@ public class MasterDetailView extends SplitLayout implements BeforeEnterObserver
         // Bind fields. This is where you'd define e.g. validation rules
 
         binder.bindInstanceFields(this);
+        prepareFormForNewPerson();
 
         cancel.addClickListener(e -> {
-            clearForm();
+            prepareFormForNewPerson();
             refreshGrid();
         });
 
         save.addClickListener(e -> {
-            try {
-                if (this.samplePerson == null) {
-                    this.samplePerson = new SamplePerson();
+            if(binder.isValid()) {
+                try {
+                    samplePersonService.update(binder.getBean());
+                    prepareFormForNewPerson();
+                    refreshGrid();
+                    Notification.show("Data updated");
+                    UI.getCurrent().navigate(MasterDetailView.class);
+                } catch (ObjectOptimisticLockingFailureException exception) {
+                    Notification n = Notification.show(
+                            "Error updating the data. Somebody else has updated the record while you were making changes.");
+                    n.setPosition(Position.MIDDLE);
+                    n.addThemeVariants(NotificationVariant.LUMO_ERROR);
                 }
-                binder.writeBean(this.samplePerson);
-                samplePersonService.update(this.samplePerson);
-                clearForm();
-                refreshGrid();
-                Notification.show("Data updated");
-                UI.getCurrent().navigate(MasterDetailView.class);
-            } catch (ObjectOptimisticLockingFailureException exception) {
-                Notification n = Notification.show(
-                        "Error updating the data. Somebody else has updated the record while you were making changes.");
-                n.setPosition(Position.MIDDLE);
-                n.addThemeVariants(NotificationVariant.LUMO_ERROR);
-            } catch (ValidationException validationException) {
+            } else {
                 Notification.show("Failed to update the data. Check again that all values are valid");
             }
         });
@@ -139,7 +135,7 @@ public class MasterDetailView extends SplitLayout implements BeforeEnterObserver
         if (samplePersonId.isPresent()) {
             Optional<SamplePerson> samplePersonFromBackend = samplePersonService.get(samplePersonId.get());
             if (samplePersonFromBackend.isPresent()) {
-                populateForm(samplePersonFromBackend.get());
+                binder.setBean(samplePersonFromBackend.get());
             } else {
                 Notification.show(
                         String.format("The requested samplePerson was not found, ID = %s", samplePersonId.get()), 3000,
@@ -180,13 +176,8 @@ public class MasterDetailView extends SplitLayout implements BeforeEnterObserver
         grid.getDataProvider().refreshAll();
     }
 
-    private void clearForm() {
-        populateForm(null);
-    }
-
-    private void populateForm(SamplePerson value) {
-        this.samplePerson = value;
-        binder.readBean(this.samplePerson);
+    private void prepareFormForNewPerson() {
+        binder.setBean(new SamplePerson());
     }
 
 }
