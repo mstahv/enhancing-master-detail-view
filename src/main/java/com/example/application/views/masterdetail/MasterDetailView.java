@@ -37,7 +37,6 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteAlias;
 import com.vaadin.flow.router.RouteConfiguration;
 import com.vaadin.flow.spring.data.VaadinSpringDataHelpers;
-import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import java.util.Arrays;
 import java.util.Optional;
@@ -112,8 +111,8 @@ public class MasterDetailView extends SplitLayout implements BeforeEnterObserver
                 prepareFormForNewPerson();
                 refreshGrid();
                 notifyUser("Data updated");
-            } catch (ObjectOptimisticLockingFailureException exception) {
-                showErrorMessage("Error updating the data. Somebody else has updated the record while you were making changes.");
+            } catch (Exception exception) {
+                showErrorMessage("Updating record failed");
             }
         });
         save.addClickShortcut(Key.ENTER);

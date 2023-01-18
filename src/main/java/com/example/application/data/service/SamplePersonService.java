@@ -1,15 +1,11 @@
 package com.example.application.data.service;
 
 import com.example.application.data.entity.SamplePerson;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.stereotype.Service;
 
 @Service
 public class SamplePersonService {
@@ -34,10 +30,6 @@ public class SamplePersonService {
     
     public Stream<SamplePerson> stream(Pageable pageable) {
         return repository.findAllBy(pageable).stream();
-    }
-
-    public Page<SamplePerson> list(Pageable pageable, Specification<SamplePerson> filter) {
-        return repository.findAll(filter, pageable);
     }
 
     public int count() {
