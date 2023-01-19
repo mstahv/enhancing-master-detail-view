@@ -14,10 +14,7 @@ import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
 import com.vaadin.flow.component.grid.contextmenu.GridMenuItem;
-import com.vaadin.flow.component.html.H3;
-import com.vaadin.flow.component.html.H5;
 import com.vaadin.flow.component.html.H6;
-import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.Notification.Position;
@@ -79,7 +76,7 @@ public class MasterDetailView extends SplitLayout implements BeforeEnterObserver
         buildView();
 
         // Connect Grid to the backend
-        grid.setItems(query -> service.stream(VaadinSpringDataHelpers.toSpringPageRequest(query)));
+        listPersonsInGrid();
 
         // Configure form binding
         binder = new BeanValidationBinder<>(SamplePerson.class);
@@ -103,14 +100,14 @@ public class MasterDetailView extends SplitLayout implements BeforeEnterObserver
 
         cancel.addClickListener(e -> {
             prepareFormForNewPerson();
-            refreshGrid();
+            listPersonsInGrid();
         });
 
         save.addClickListener(e -> {
             try {
                 service.update(binder.getBean());
                 prepareFormForNewPerson();
-                refreshGrid();
+                listPersonsInGrid();
                 notifyUser("Data updated");
             } catch (ObjectOptimisticLockingFailureException exception) {
                 showErrorMessage("Error updating the data. Somebody else has updated the record while you were making changes.");
@@ -232,9 +229,8 @@ public class MasterDetailView extends SplitLayout implements BeforeEnterObserver
         updateRouteParameters();
     }
 
-    private void refreshGrid() {
-        grid.deselectAll();
-        grid.getDataProvider().refreshAll();
+    private void listPersonsInGrid() {
+        grid.setItems(query -> service.stream(VaadinSpringDataHelpers.toSpringPageRequest(query)));
     }
 
     private void prepareFormForNewPerson() {
