@@ -223,8 +223,8 @@ public class MasterDetailView extends SplitLayout implements BeforeEnterObserver
     }
 
 
-    private void editPerson(SamplePerson samplePersonFromBackend) {
-        binder.setBean(samplePersonFromBackend);
+    private void editPerson(SamplePerson person) {
+        binder.setBean(person);
         formHasChanges = false;
         updateRouteParameters();
     }
