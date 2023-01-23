@@ -144,29 +144,6 @@ public class MasterDetailView extends SplitLayout implements HasUrlParameter<Lon
 
    }
 
-    private Component uncheckedIcon() {
-        Icon icon = VaadinIcon.MINUS.create();
-        icon.addClassNames(LumoUtility.TextColor.DISABLED, LumoUtility.IconSize.SMALL);
-        return icon;
-    }
-
-    private Component checkedIcon() {
-        Icon icon = VaadinIcon.CHECK.create();
-        icon.addClassNames(LumoUtility.TextColor.PRIMARY, LumoUtility.IconSize.SMALL);
-        return icon;
-    }
-
-    /**
-     * Updates deep linkin parameters.
-     */
-    private void updateRouteParameters() {
-        if(isAttached()) {
-            String deepLinkingUrl = RouteConfiguration.forSessionScope().getUrl(getClass(), binder.getBean().getId());
-            getUI().get().getPage().getHistory()
-                    .replaceState(null, deepLinkingUrl);
-        }
-    }
-
     private void editPerson(SamplePerson person) {
         binder.setBean(person);
         updateRouteParameters();
@@ -180,6 +157,26 @@ public class MasterDetailView extends SplitLayout implements HasUrlParameter<Lon
         editPerson(new SamplePerson());
     }
 
+    /**
+     * Updates deep linkin parameters.
+     */
+    private void updateRouteParameters() {
+        if(isAttached()) {
+            String deepLinkingUrl = RouteConfiguration.forSessionScope().getUrl(getClass(), binder.getBean().getId());
+            getUI().get().getPage().getHistory()
+                    .replaceState(null, deepLinkingUrl);
+        }
+    }
+
+    /**
+     * Called by the framework when entering the page.
+     * Decodes possible deep linking parameters from the URL.
+     *
+     * @param event
+     *            the navigation event that caused the call to this method
+     * @param samplePersonId
+     *            the optional person id coming in as URL parameter
+     */
     @Override
     public void setParameter(BeforeEvent event, @OptionalParameter Long samplePersonId) {
         /*
@@ -198,6 +195,18 @@ public class MasterDetailView extends SplitLayout implements HasUrlParameter<Lon
         } else {
             prepareFormForNewPerson();
         }
+    }
+
+    private static Component uncheckedIcon() {
+        Icon icon = VaadinIcon.MINUS.create();
+        icon.addClassNames(LumoUtility.TextColor.DISABLED, LumoUtility.IconSize.SMALL);
+        return icon;
+    }
+
+    private static Component checkedIcon() {
+        Icon icon = VaadinIcon.CHECK.create();
+        icon.addClassNames(LumoUtility.TextColor.PRIMARY, LumoUtility.IconSize.SMALL);
+        return icon;
     }
 
 }
