@@ -41,7 +41,7 @@ import java.util.Optional;
 @PageTitle("Master-Detail")
 @Route(value = "master-detail", layout = MainLayout.class)
 @RouteAlias(value = "", layout = MainLayout.class)
-public class MasterDetailView extends SplitLayout implements HasUrlParameter<String> {
+public class MasterDetailView extends SplitLayout implements HasUrlParameter<Long> {
 
     private final Grid<SamplePerson> grid = new Grid<>(SamplePerson.class, false);
 
@@ -183,15 +183,11 @@ public class MasterDetailView extends SplitLayout implements HasUrlParameter<Str
      */
     private void updateRouteParameters() {
         if(isAttached()) {
-            String deepLinkingUrl = RouteConfiguration.forSessionScope().getUrl(getClass());
-            if(binder.getBean().getId() != null) {
-                deepLinkingUrl = deepLinkingUrl + "/" + binder.getBean().getId();
-            }
+            String deepLinkingUrl = RouteConfiguration.forSessionScope().getUrl(getClass(), binder.getBean().getId());
             getUI().get().getPage().getHistory()
                     .replaceState(null, deepLinkingUrl);
         }
     }
-
 
     private void editPerson(SamplePerson person) {
         binder.setBean(person);
@@ -233,14 +229,13 @@ public class MasterDetailView extends SplitLayout implements HasUrlParameter<Str
     }
 
     @Override
-    public void setParameter(BeforeEvent event, @OptionalParameter String urlParameter) {
+    public void setParameter(BeforeEvent event, @OptionalParameter Long samplePersonId) {
         /*
          * When entering the view, check if there is an
          * if an existing person should be selected for
          * editing based on the current URL
          */
-        if (urlParameter != null) {
-            Long samplePersonId = Long.parseLong(urlParameter);
+        if (samplePersonId != null) {
             Optional<SamplePerson> samplePersonFromBackend = service.get(samplePersonId);
             if (samplePersonFromBackend.isPresent()) {
                 editPerson(samplePersonFromBackend.get());
