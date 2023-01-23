@@ -106,7 +106,7 @@ public class MasterDetailView extends SplitLayout implements HasUrlParameter<Str
                 service.update(binder.getBean());
                 prepareFormForNewPerson();
                 listPersonsInGrid();
-                notifyUser("Data updated");
+                Notification.show("Data updated");
             } catch (ObjectOptimisticLockingFailureException exception) {
                 showErrorMessage("Error updating the data. Somebody else has updated the record while you were making changes.");
             }
@@ -118,10 +118,6 @@ public class MasterDetailView extends SplitLayout implements HasUrlParameter<Str
         Notification n = Notification.show(errorMessage);
         n.setPosition(Position.MIDDLE);
         n.addThemeVariants(NotificationVariant.LUMO_ERROR);
-    }
-
-    private static void notifyUser(String Data_updated) {
-        Notification.show(Data_updated);
     }
 
     private void buildView() {
