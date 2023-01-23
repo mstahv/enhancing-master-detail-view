@@ -11,20 +11,14 @@ import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
-import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
-import com.vaadin.flow.component.grid.contextmenu.GridMenuItem;
-import com.vaadin.flow.component.html.H6;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.Notification.Position;
 import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.component.shared.Tooltip;
 import com.vaadin.flow.component.splitlayout.SplitLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
-import com.vaadin.flow.data.value.HasValueChangeMode;
-import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.BeforeEvent;
 import com.vaadin.flow.router.HasUrlParameter;
 import com.vaadin.flow.router.OptionalParameter;
@@ -35,7 +29,6 @@ import com.vaadin.flow.router.RouteConfiguration;
 import com.vaadin.flow.spring.data.VaadinSpringDataHelpers;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
-import java.util.Arrays;
 import java.util.Optional;
 
 @PageTitle("Master-Detail")
@@ -61,11 +54,6 @@ public class MasterDetailView extends SplitLayout implements HasUrlParameter<Str
 
     private final SamplePersonService service;
 
-    // binder.hasChanges() methods does not
-    // work in a meaningful way with buffered
-    // binding, track changes with this field
-    private boolean formHasChanges;
-
     public MasterDetailView(SamplePersonService samplePersonService) {
         this.service = samplePersonService;
         buildView();
@@ -76,8 +64,6 @@ public class MasterDetailView extends SplitLayout implements HasUrlParameter<Str
         // Configure form binding
         binder = new BeanValidationBinder<>(SamplePerson.class);
         binder.bindInstanceFields(this);
-
-        configureEagerFormValidation();
 
         addListeners();
 
@@ -129,7 +115,6 @@ public class MasterDetailView extends SplitLayout implements HasUrlParameter<Str
         cancel.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
         save.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
 
-
         var editorLayout = new VerticalLayout();
         editorLayout.setWidth("400px");
         editorLayout.setPadding(false);
@@ -141,42 +126,19 @@ public class MasterDetailView extends SplitLayout implements HasUrlParameter<Str
         addToPrimary(grid);
 
         // Configure Grid
-        grid.setColumns("firstName","lastName" ,"email", "phone", "dateOfBirth", "occupation", "role");
+        grid.setColumns("firstName","lastName" ,"email");
         grid.addComponentColumn(p ->
                         p.isImportant() ? new CheckedIcon() : new UncheckedIcon())
                 .setHeader("Important")
-                .setKey("important")
+                .setKey("important") // sorting falls back to "important" field in DTO
                 .setSortable(true);
-        grid.addThemeVariants(GridVariant.LUMO_NO_BORDER);
         grid.getColumns().forEach(c -> {
             c.setAutoWidth(true);
-            c.setVisible(false);
         });
-
-        // Show only reasonable amount of columns by default:
-        // Better performance and UX
-        // Everybody looking at this code snippet, please go and
-        // vote https://github.com/vaadin/flow-components/issues/1603
-        Arrays.asList("firstName","lastName" ,"email", "important")
-                .forEach(key -> grid.getColumnByKey(key).setVisible(true));
+        grid.addThemeVariants(GridVariant.LUMO_NO_BORDER);
         grid.setSizeFull();
 
-        // Use Grid's built in context menu to show/hide cols
-        GridContextMenu<SamplePerson> columnSelector = grid.addContextMenu();
-        columnSelector.add(new H6("Available columns:"));
-        grid.getColumns().forEach(col -> {
-            GridMenuItem<SamplePerson> item = columnSelector.addItem(col.getHeaderText());
-            item.setCheckable(true);
-            item.setChecked(col.isVisible());
-            item.addMenuItemClickListener(e -> {
-                col.setVisible(!col.isVisible());
-                item.setChecked(col.isVisible());
-            });
-        });
-        // add a tooltip for people to find the functionality
-        Tooltip.forComponent(grid)
-                .withText("Context click to edit visible columns");
-    }
+   }
 
     /**
      * Updates deep linkin parameters.
@@ -195,7 +157,6 @@ public class MasterDetailView extends SplitLayout implements HasUrlParameter<Str
 
     private void editPerson(SamplePerson person) {
         binder.setBean(person);
-        formHasChanges = false;
         updateRouteParameters();
     }
 
@@ -205,31 +166,6 @@ public class MasterDetailView extends SplitLayout implements HasUrlParameter<Str
 
     private void prepareFormForNewPerson() {
         editPerson(new SamplePerson());
-    }
-
-    private void configureEagerFormValidation() {
-        // Validate fields while users type in
-        // for example when email becomes valid,
-        // the error disappears automatically
-        binder.getFields().forEach(c -> {
-            if (c instanceof HasValueChangeMode) {
-                ((HasValueChangeMode) c).setValueChangeMode(ValueChangeMode.LAZY);
-            }
-        });
-        binder.addStatusChangeListener(e -> {
-            adjustSaveButtonState();
-        });
-        binder.addValueChangeListener(e -> {
-            if(e.isFromClient()) {
-                formHasChanges = true;
-                adjustSaveButtonState();
-            }
-        });
-    }
-
-    private void adjustSaveButtonState() {
-        // only allow saving if we have valida data
-        save.setEnabled(binder.isValid() && formHasChanges);
     }
 
     @Override
