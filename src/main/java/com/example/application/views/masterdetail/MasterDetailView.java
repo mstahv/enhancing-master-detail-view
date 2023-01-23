@@ -3,6 +3,7 @@ package com.example.application.views.masterdetail;
 import com.example.application.data.entity.SamplePerson;
 import com.example.application.data.service.SamplePersonService;
 import com.example.application.views.MainLayout;
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -11,6 +12,8 @@ import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
+import com.vaadin.flow.component.icon.Icon;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.Notification.Position;
 import com.vaadin.flow.component.notification.NotificationVariant;
@@ -27,6 +30,7 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteAlias;
 import com.vaadin.flow.router.RouteConfiguration;
 import com.vaadin.flow.spring.data.VaadinSpringDataHelpers;
+import com.vaadin.flow.theme.lumo.LumoUtility;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import java.util.Optional;
@@ -128,7 +132,7 @@ public class MasterDetailView extends SplitLayout implements HasUrlParameter<Lon
         // Configure Grid
         grid.setColumns("firstName","lastName" ,"email");
         grid.addComponentColumn(p ->
-                        p.isImportant() ? new CheckedIcon() : new UncheckedIcon())
+                        p.isImportant() ? checkedIcon() : uncheckedIcon())
                 .setHeader("Important")
                 .setKey("important") // sorting falls back to "important" field in DTO
                 .setSortable(true);
@@ -139,6 +143,18 @@ public class MasterDetailView extends SplitLayout implements HasUrlParameter<Lon
         grid.setSizeFull();
 
    }
+
+    private Component uncheckedIcon() {
+        Icon icon = VaadinIcon.MINUS.create();
+        icon.addClassNames(LumoUtility.TextColor.DISABLED, LumoUtility.IconSize.SMALL);
+        return icon;
+    }
+
+    private Component checkedIcon() {
+        Icon icon = VaadinIcon.CHECK.create();
+        icon.addClassNames(LumoUtility.TextColor.PRIMARY, LumoUtility.IconSize.SMALL);
+        return icon;
+    }
 
     /**
      * Updates deep linkin parameters.
@@ -183,4 +199,5 @@ public class MasterDetailView extends SplitLayout implements HasUrlParameter<Lon
             prepareFormForNewPerson();
         }
     }
+
 }
