@@ -27,8 +27,9 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.value.HasValueChangeMode;
 import com.vaadin.flow.data.value.ValueChangeMode;
-import com.vaadin.flow.router.BeforeEnterEvent;
-import com.vaadin.flow.router.BeforeEnterObserver;
+import com.vaadin.flow.router.BeforeEvent;
+import com.vaadin.flow.router.HasUrlParameter;
+import com.vaadin.flow.router.OptionalParameter;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteAlias;
@@ -40,13 +41,10 @@ import java.util.Arrays;
 import java.util.Optional;
 
 @PageTitle("Master-Detail")
-@Route(value = "master-detail/:"+ MasterDetailView.SAMPLEPERSON_ID + "?/:action?(edit)", layout = MainLayout.class)
-@RouteAlias(value = ":"+ MasterDetailView.SAMPLEPERSON_ID+"?/:action?(edit)", layout = MainLayout.class)
+@Route(value = "master-detail", layout = MainLayout.class)
+@RouteAlias(value = "", layout = MainLayout.class)
 @Uses(Icon.class)
-public class MasterDetailView extends SplitLayout implements BeforeEnterObserver {
-
-    public static final String SAMPLEPERSON_ID = "samplePersonID";
-    private static final String SAMPLEPERSON_EDIT_ROUTE_TEMPLATE = "/%s/edit";
+public class MasterDetailView extends SplitLayout implements HasUrlParameter<String> {
 
     private final Grid<SamplePerson> grid = new Grid<>(SamplePerson.class, false);
 
@@ -187,27 +185,6 @@ public class MasterDetailView extends SplitLayout implements BeforeEnterObserver
                 .withText("Context click to edit visible columns");
     }
 
-    @Override
-    public void beforeEnter(BeforeEnterEvent event) {
-        /*
-         * When entering the view, check if there is an
-         * if an existing person should be selected for
-         * editing based on the current URL
-         */
-        Optional<Long> samplePersonId = event.getRouteParameters().get(SAMPLEPERSON_ID).map(Long::parseLong);
-        if (samplePersonId.isPresent()) {
-            Optional<SamplePerson> samplePersonFromBackend = service.get(samplePersonId.get());
-            if (samplePersonFromBackend.isPresent()) {
-                editPerson(samplePersonFromBackend.get());
-            } else {
-                showErrorMessage("The requested samplePerson was not found, ID = %s");
-                prepareFormForNewPerson();
-            }
-        } else {
-            prepareFormForNewPerson();
-        }
-    }
-
     /**
      * Updates deep linkin parameters.
      */
@@ -215,7 +192,7 @@ public class MasterDetailView extends SplitLayout implements BeforeEnterObserver
         if(isAttached()) {
             String deepLinkingUrl = RouteConfiguration.forSessionScope().getUrl(getClass());
             if(binder.getBean().getId() != null) {
-                deepLinkingUrl = deepLinkingUrl + String.format(SAMPLEPERSON_EDIT_ROUTE_TEMPLATE, binder.getBean().getId().toString());
+                deepLinkingUrl = deepLinkingUrl + "/" + binder.getBean().getId();
             }
             getUI().get().getPage().getHistory()
                     .replaceState(null, deepLinkingUrl);
@@ -262,4 +239,24 @@ public class MasterDetailView extends SplitLayout implements BeforeEnterObserver
         save.setEnabled(binder.isValid() && formHasChanges);
     }
 
+    @Override
+    public void setParameter(BeforeEvent event, @OptionalParameter String urlParameter) {
+        /*
+         * When entering the view, check if there is an
+         * if an existing person should be selected for
+         * editing based on the current URL
+         */
+        if (urlParameter != null) {
+            Long samplePersonId = Long.parseLong(urlParameter);
+            Optional<SamplePerson> samplePersonFromBackend = service.get(samplePersonId);
+            if (samplePersonFromBackend.isPresent()) {
+                editPerson(samplePersonFromBackend.get());
+            } else {
+                showErrorMessage("The requested samplePerson was not found, ID = %s");
+                prepareFormForNewPerson();
+            }
+        } else {
+            prepareFormForNewPerson();
+        }
+    }
 }
