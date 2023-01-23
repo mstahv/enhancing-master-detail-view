@@ -8,14 +8,12 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.datepicker.DatePicker;
-import com.vaadin.flow.component.dependency.Uses;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
 import com.vaadin.flow.component.grid.contextmenu.GridMenuItem;
 import com.vaadin.flow.component.html.H6;
-import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.Notification.Position;
 import com.vaadin.flow.component.notification.NotificationVariant;
@@ -43,7 +41,6 @@ import java.util.Optional;
 @PageTitle("Master-Detail")
 @Route(value = "master-detail", layout = MainLayout.class)
 @RouteAlias(value = "", layout = MainLayout.class)
-@Uses(Icon.class)
 public class MasterDetailView extends SplitLayout implements HasUrlParameter<String> {
 
     private final Grid<SamplePerson> grid = new Grid<>(SamplePerson.class, false);
