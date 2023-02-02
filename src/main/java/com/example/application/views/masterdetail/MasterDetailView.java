@@ -4,6 +4,7 @@ import com.example.application.data.entity.SamplePerson;
 import com.example.application.data.service.SamplePersonService;
 import com.example.application.views.MainLayout;
 import com.vaadin.flow.component.Key;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
@@ -29,6 +30,7 @@ import com.vaadin.flow.router.BeforeEvent;
 import com.vaadin.flow.router.HasUrlParameter;
 import com.vaadin.flow.router.OptionalParameter;
 import com.vaadin.flow.router.PageTitle;
+import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteAlias;
 import com.vaadin.flow.router.RouteConfiguration;
@@ -65,6 +67,8 @@ public class MasterDetailView extends SplitLayout implements HasUrlParameter<Lon
     // work in a meaningful way with buffered
     // binding, track changes with this field
     private boolean formHasChanges;
+
+    private QueryParameters queryParameters;
 
     public MasterDetailView(SamplePersonService samplePersonService) {
         this.service = samplePersonService;
@@ -184,6 +188,7 @@ public class MasterDetailView extends SplitLayout implements HasUrlParameter<Lon
     private void updateRouteParameters() {
         if(isAttached()) {
             String deepLinkingUrl = RouteConfiguration.forSessionScope().getUrl(getClass(), binder.getBean().getId());
+            deepLinkingUrl += "?" + queryParameters.getQueryString();
             getUI().get().getPage().getHistory()
                     .replaceState(null, deepLinkingUrl);
         }
@@ -246,5 +251,6 @@ public class MasterDetailView extends SplitLayout implements HasUrlParameter<Lon
         } else {
             prepareFormForNewPerson();
         }
+        queryParameters = event.getLocation().getQueryParameters();
     }
 }
