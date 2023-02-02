@@ -195,7 +195,8 @@ public class MasterDetailView extends SplitLayout implements HasUrlParameter<Lon
     }
 
     private void editPerson(SamplePerson person) {
-        binder.setBean(person);
+        SamplePerson personForTheForm = service.loadWithRelations(person);
+        binder.setBean(personForTheForm);
         formHasChanges = false;
         updateRouteParameters();
     }

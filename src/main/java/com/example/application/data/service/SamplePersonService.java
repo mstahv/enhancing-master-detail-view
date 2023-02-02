@@ -44,4 +44,8 @@ public class SamplePersonService {
         return (int) repository.count();
     }
 
+    public SamplePerson loadWithRelations(SamplePerson person) {
+        // this is only example, no relations in our SamplePerson...
+        return person;
+    }
 }
